@@ -13,8 +13,12 @@
         </tr>
 
         <tr>
-            <th>メッセージ</th>
+            <th>タスク</th>
             <td>{{ $task->content }}</td>
+        </tr>
+        <tr>
+            <th>status</th>
+            <td>{{ $task->status }}</td>
         </tr>
     </table>
     

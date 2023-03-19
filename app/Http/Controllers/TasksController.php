@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Providers\RouteServiceProvider;
+use Illuminate\Support\Facades\Auth;
 
 use App\Models\Task;
 
@@ -15,9 +17,15 @@ class TasksController extends Controller
      */
     public function index()
     {
-        $tasks = Task::all();
+        $tasks = [];
+        if (\Auth::check()) {
+            $user = \Auth::user();
+            $tasks = $user->tasks()->get();
+            
+        }
         
-        return view('tasks.index',['tasks' => $tasks,]);
+        return view('dashboard',['tasks' => $tasks,]);
+        
     }
 
     /**
@@ -27,12 +35,15 @@ class TasksController extends Controller
      */
     public function create()
     {
-        $task = new Task;
+        if (\Auth::check()) {
+            $task = new Task;
 
-        // メッセージ作成ビューを表示
-        return view('tasks.create', [
-            'task' => $task,
-        ]);
+            // メッセージ作成ビューを表示
+            return view('tasks.create', [
+                'task' => $task,
+            ]);
+        }
+        return redirect('/');
     }
 
     /**
@@ -43,16 +54,21 @@ class TasksController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'content' => 'required',
-            'status'=> 'required|max:10'
-        ]);
+        if (\Auth::check()) {
+            $request->validate([
+                'content' => 'required',
+                'status'=> 'required|max:10'
+            ]);
         
-        $task = new Task;
+            $request->user()->tasks()->create([
+                'content' => $request->content,
+                'status' => $request->status,
+            ]);
+        /*$task = new Task;
         $task->content = $request->content;
         $task->status = $request->status;
-        $task->save();
-        
+        $task->save();*/
+        }
         return redirect('/');
     }
 
@@ -64,10 +80,14 @@ class TasksController extends Controller
      */
     public function show($id)
     {
-        $task = Task::findOrFail($id);
-        
-        return view('tasks.show', ['task' => $task,]);
-        
+        if (\Auth::check()) {
+            $task = Task::findOrFail($id);
+
+            if (\Auth::id() === $task->user_id) {
+                return view('tasks.show', ['task' => $task,]);
+            }
+        }
+        return redirect('/');
     }
 
     /**
@@ -78,9 +98,13 @@ class TasksController extends Controller
      */
     public function edit($id)
     {
-        $task = Task::findOrFail($id);
-        
-        return view('tasks.edit', ['task' => $task,]);
+        if (\Auth::check()) {
+            $task = Task::findOrFail($id);
+            if (\Auth::id() === $task->user_id) {
+                return view('tasks.edit', ['task' => $task,]);
+            }
+        }
+        return redirect('/');
     }
 
     /**
@@ -92,16 +116,19 @@ class TasksController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'content'=> 'required',
-            'status'=> 'required|max:10',
-        ]);
-        $task = Task::findOrFail($id);
-        
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
-        
+        if (\Auth::check()) {
+            $request->validate([
+                'content'=> 'required',
+                'status'=> 'required|max:10',
+            ]);
+            $task = Task::findOrFail($id);
+            if (\Auth::id() === $task->user_id) {
+                $task->content = $request->content;
+                $task->status = $request->status;
+                $task->save();
+            }
+            
+        }
         return redirect('/');
     }
 
@@ -113,10 +140,13 @@ class TasksController extends Controller
      */
     public function destroy($id)
     {
-        $task = Task::findOrFail($id);
+        if (\Auth::check()) {
+            $task = Task::findOrFail($id);
         
-        $task->delete();
+            $task->delete();
         
-        return redirect('/');
+            return redirect('/');
+        }
+        return view('dashboard');
     }
 }
